@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctolib — CS Ops Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #EEF3F8; color: #1A1E2A; font-size: 13px; }
+
+    .hdr { background: #002850; padding: 14px 28px; display: flex; align-items: center; gap: 14px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,40,80,.35); }
+    .hdr-logo { font-size: 20px; font-weight: 800; color: #00A8E0; letter-spacing: -.5px; }
+    .hdr-sep  { width: 1px; height: 24px; background: #1A3D60; }
+    .hdr-t1   { font-size: 14px; font-weight: 700; color: #fff; }
+    .hdr-t2   { font-size: 11px; color: #8CBEDC; margin-top: 2px; }
+
+    .filters { background: #fff; border-bottom: 1px solid #DDE6F0; padding: 10px 28px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+    .fl-label { font-size: 10px; font-weight: 700; color: #788296; text-transform: uppercase; letter-spacing: .6px; margin-right: 6px; }
+    .btn-grp { display: inline-flex; border: 1px solid #C8DAEA; border-radius: 6px; overflow: hidden; }
+    .btn-grp button { padding: 5px 12px; font-size: 11px; font-weight: 600; border: none; background: #fff; color: #788296; cursor: pointer; }
+    .btn-grp button.on { background: #00A8E0; color: #fff; }
+    .btn-grp button:hover:not(.on) { background: #E8F8FF; color: #00A8E0; }
+    select { padding: 5px 26px 5px 9px; font-size: 11px; border: 1px solid #C8DAEA; border-radius: 6px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24'%3E%3Cpath fill='%23788296' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 8px center; appearance: none; cursor: pointer; color: #1A1E2A; }
+    select:focus { outline: none; border-color: #00A8E0; }
+
+    .page { padding: 20px 28px; max-width: 1700px; margin: 0 auto; }
+
+    .sec-title { font-size: 11px; font-weight: 800; color: #002850; text-transform: uppercase; letter-spacing: .8px; margin: 0 0 12px 0; padding-left: 10px; border-left: 3px solid #00A8E0; }
+    .sec { margin-bottom: 22px; }
+
+    .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 22px; }
+    .kpi { background: #fff; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,40,80,.07); border: 1px solid #E0EAF3; border-top: 3px solid #00A8E0; }
+    .kpi-lbl { font-size: 10px; font-weight: 700; color: #788296; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+    .kpi-val { font-size: 30px; font-weight: 800; color: #1A1E2A; line-height: 1; margin-bottom: 8px; }
+    .kpi-foot { font-size: 11px; color: #788296; display: flex; align-items: center; gap: 6px; }
+    .chip { display: inline-flex; padding: 1px 7px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+    .chip-g { background: #DCFCE7; color: #15803D; }
+    .chip-r { background: #FEE2E2; color: #B91C1C; }
+
+    .g2 { display: grid; grid-template-columns: 1fr 1fr;         gap: 14px; }
+    .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr;     gap: 14px; }
+    .g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; }
+
+    .cc { background: #fff; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,40,80,.07); border: 1px solid #E0EAF3; }
+    .cc-title { font-size: 12px; font-weight: 700; color: #002850; }
+    .cc-sub { font-size: 10px; color: #788296; margin-top: 2px; margin-bottom: 12px; }
+
+    .rank-row { display: grid; grid-template-columns: 160px 160px 1fr; gap: 14px; }
+    .rank { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px rgba(0,40,80,.07); border: 1px solid #E0EAF3; text-align: center; }
+    .rank-icon { font-size: 24px; margin-bottom: 8px; }
+    .rank-badge { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
+    .rank-name { font-size: 13px; font-weight: 800; color: #002850; margin-bottom: 2px; }
+    .rank-team { font-size: 10px; color: #788296; margin-bottom: 10px; }
+    .rank-n { font-size: 28px; font-weight: 900; line-height: 1; }
+    .rank-nl { font-size: 10px; color: #788296; margin-top: 4px; }
+
+    .tbl-wrap { background: #fff; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,40,80,.07); border: 1px solid #E0EAF3; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+    th { padding: 8px 12px; font-size: 10px; font-weight: 700; color: #788296; text-transform: uppercase; letter-spacing: .4px; border-bottom: 1px solid #E0EAF3; background: #F8FAFC; text-align: left; white-space: nowrap; }
+    td { padding: 9px 12px; border-bottom: 1px solid #F0F4F8; white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #F8FAFC; }
+    .b { display: inline-flex; padding: 1px 7px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+    .b-int { background: #E0F2FE; color: #0369A1; }
+    .b-bpo { background: #EDE9FE; color: #7C3AED; }
+    .b-sal { background: #DBEAFE; color: #1D4ED8; }
+    .b-se  { background: #FCE7F3; color: #9D174D; }
+    .b-h   { background: #FEE2E2; color: #991B1B; }
+    .b-m   { background: #FFEDD5; color: #9A3412; }
+    .b-l   { background: #F0F4F8; color: #788296; }
+    .empty { padding: 24px; text-align: center; color: #788296; }
+
+    .mt14 { margin-top: 14px; }
+
+    @media (max-width: 1300px) { .g4 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 960px)  { .kpi-row, .g2, .g3, .g4, .rank-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <span class="hdr-logo">doctolib</span>
+  <div class="hdr-sep"></div>
+  <div>
+    <div class="hdr-t1">CS Ops Dashboard</div>
+    <div class="hdr-t2">Customer Support Efficiency — Automation &amp; Ops</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+  <div>
+    <span class="fl-label">Period</span>
+    <div class="btn-grp" id="period-btns">
+      <button class="on" data-p="week">Week</button>
+      <button data-p="month">Month</button>
+      <button data-p="quarter">Quarter</button>
+      <button data-p="year">Year</button>
+    </div>
+  </div>
+  <div>
+    <span class="fl-label">Segment</span>
+    <select id="f-seg">
+      <option value="all">All segments</option>
+      <option value="salaried">Salaried</option>
+      <option value="selfemployed">Self-employed</option>
+    </select>
+  </div>
+  <div>
+    <span class="fl-label">Team</span>
+    <select id="f-team">
+      <option value="all">All teams</option>
+      <option value="internal">Internal CS</option>
+      <option value="bpo">BPO CS</option>
+    </select>
+  </div>
+  <div>
+    <span class="fl-label">Agent</span>
+    <select id="f-agent">
+      <option value="all">All agents</option>
+    </select>
+  </div>
+  <div>
+    <span class="fl-label">Country</span>
+    <select id="f-country">
+      <option value="all">All countries</option>
+      <option value="france">France</option>
+      <option value="italy">Italy</option>
+      <option value="germany">Germany</option>
+    </select>
+  </div>
+</div>
+
+<!-- Page -->
+<div class="page">
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-lbl">Tickets Open — Current</div>
+      <div class="kpi-val" id="kpi-open">—</div>
+      <div class="kpi-foot" id="kpi-open-foot"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl" id="kpi-closed-lbl">Tickets Closed — Last Period</div>
+      <div class="kpi-val" id="kpi-closed">—</div>
+      <div class="kpi-foot" id="kpi-closed-foot"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl" id="kpi-opened-lbl">Tickets Opened — Last Period</div>
+      <div class="kpi-val" id="kpi-opened">—</div>
+      <div class="kpi-foot" id="kpi-opened-foot"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl" id="kpi-ratio-lbl">Opened / Closed Ratio — Last Period</div>
+      <div class="kpi-val" id="kpi-ratio">—</div>
+      <div class="kpi-foot" id="kpi-ratio-foot"></div>
+    </div>
+  </div>
+
+  <!-- Volume -->
+  <div class="sec">
+    <div class="sec-title">Volume</div>
+    <!-- Row 1: time-series + per customer -->
+    <div class="g2">
+      <div class="cc">
+        <div class="cc-title">Tickets Opened, Closed &amp; Still Open</div>
+        <div class="cc-sub" id="sub-vol">Per period</div>
+        <canvas id="ch-vol" height="200"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-title">Tickets Opened per Customer</div>
+        <div class="cc-sub" id="sub-pc">Avg per period</div>
+        <canvas id="ch-pc" height="200"></canvas>
+      </div>
+    </div>
+    <!-- Row 2: by topic -->
+    <div class="mt14">
+      <div class="cc">
+        <div class="cc-title">Tickets Opened &amp; Closed by Topic</div>
+        <div class="cc-sub">Last period — grouped by topic</div>
+        <canvas id="ch-topic-vol" height="160"></canvas>
+      </div>
+    </div>
+    <!-- Row 3: by product -->
+    <div class="mt14">
+      <div class="cc">
+        <div class="cc-title">Tickets Opened &amp; Closed by Product</div>
+        <div class="cc-sub">Last period — grouped by product</div>
+        <canvas id="ch-prod-vol" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Efficiency -->
+  <div class="sec">
+    <div class="sec-title">Efficiency Metrics</div>
+    <div class="g3">
+      <div class="cc">
+        <div class="cc-title">Avg Touchpoints for Resolution</div>
+        <div class="cc-sub" id="sub-tp">Per period</div>
+        <canvas id="ch-tp" height="185"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-title">Avg Handling Time</div>
+        <div class="cc-sub" id="sub-ht">Per period (min)</div>
+        <canvas id="ch-ht" height="185"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-title">% Tickets Fully Automated</div>
+        <div class="cc-sub" id="sub-auto">Per period</div>
+        <canvas id="ch-auto" height="185"></canvas>
+      </div>
+    </div>
+    <div class="g3 mt14">
+      <div class="cc">
+        <div class="cc-title">SLA Compliance Rate</div>
+        <div class="cc-sub" id="sub-sla">Per period</div>
+        <canvas id="ch-sla" height="185"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-title">CSAT</div>
+        <div class="cc-sub" id="sub-csat">Per period (out of 5)</div>
+        <canvas id="ch-csat" height="185"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-title">% Tickets Templatized</div>
+        <div class="cc-sub" id="sub-tpl">Per period</div>
+        <canvas id="ch-tpl" height="185"></canvas>
+      </div>
+    </div>
+    <div class="g2 mt14">
+      <div class="cc">
+        <div class="cc-title">1-Day Close Rate</div>
+        <div class="cc-sub" id="sub-cr1d">% tickets closed within 1 day of opening</div>
+        <canvas id="ch-cr1d" height="185"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-title">1-Week Close Rate</div>
+        <div class="cc-sub" id="sub-cr7d">% tickets closed within 7 days of opening</div>
+        <canvas id="ch-cr7d" height="185"></canvas>
+      </div>
+    </div>
+    <div class="g2 mt14">
+      <div class="cc">
+        <div class="cc-title">FCR % &amp; Avg Resolution Time — by Opening Period</div>
+        <div class="cc-sub">Resolution days (bars, left axis) vs FCR % (line, right axis)</div>
+        <canvas id="ch-fcr-res" height="220"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-title">Avg Resolution Time — by Closing Period</div>
+        <div class="cc-sub">Days from creation to close, grouped by close date</div>
+        <canvas id="ch-res-close" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticket Age -->
+  <div class="sec">
+    <div class="sec-title">Ticket Age</div>
+    <div class="g2">
+      <div class="cc">
+        <div class="cc-title">Avg Ticket Age — by Opening Period</div>
+        <div class="cc-sub">Age of open tickets grouped by creation date</div>
+        <canvas id="ch-age-open" height="200"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-title">Avg Ticket Age — by Period</div>
+        <div class="cc-sub">Age of all open tickets at end of each period</div>
+        <canvas id="ch-age" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Efficiency by Agent -->
+  <div class="sec">
+    <div class="sec-title">Efficiency by Agent</div>
+    <div class="g2">
+      <div class="cc">
+        <div class="cc-title">Tickets Open per Agent</div>
+        <div class="cc-sub" id="sub-ag-open">Last period</div>
+        <canvas id="ch-ag-open" height="220"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-title">Tickets Closed per Agent</div>
+        <div class="cc-sub" id="sub-ag-close">Last period</div>
+        <canvas id="ch-ag-close" height="220"></canvas>
+      </div>
+    </div>
+    <div class="mt14">
+      <div class="cc">
+        <div class="cc-title">Agent Distribution — Tickets Closed Last Period</div>
+        <div class="cc-sub">Number of agents per tickets-closed bucket</div>
+        <canvas id="ch-dist" height="160"></canvas>
+      </div>
+    </div>
+    <div class="rank-row mt14">
+      <div class="rank" style="border-top:3px solid #22C55E">
+        <div class="rank-icon">🏆</div>
+        <div class="rank-badge" style="color:#15803D">Top Closer</div>
+        <div class="rank-name" id="top-name">—</div>
+        <div class="rank-team" id="top-team">—</div>
+        <div class="rank-n" id="top-n" style="color:#22C55E">—</div>
+        <div class="rank-nl">tickets closed</div>
+      </div>
+      <div class="rank" style="border-top:3px solid #EF4444">
+        <div class="rank-icon">📉</div>
+        <div class="rank-badge" style="color:#B91C1C">Needs Support</div>
+        <div class="rank-name" id="bot-name">—</div>
+        <div class="rank-team" id="bot-team">—</div>
+        <div class="rank-n" id="bot-n" style="color:#EF4444">—</div>
+        <div class="rank-nl">tickets closed</div>
+      </div>
+      <div class="cc">
+        <div class="cc-title" id="rank-title">All Agents — Tickets Closed Last Period</div>
+        <div class="cc-sub">Ranked by tickets closed</div>
+        <canvas id="ch-rank" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quality Flags -->
+  <div class="sec">
+    <div class="sec-title">Quality Flags</div>
+    <div class="g3">
+      <div class="cc">
+        <div class="cc-title">Reopen Rate</div>
+        <div class="cc-sub">% of closed tickets reopened, per closing period</div>
+        <canvas id="ch-rr" height="200"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-title">Escalation Rate</div>
+        <div class="cc-sub">% of tickets escalated, per closing period</div>
+        <canvas id="ch-er" height="200"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-title">Re-routing Rate</div>
+        <div class="cc-sub">% of tickets re-routed — target &lt;8%</div>
+        <canvas id="ch-reroute" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top 20 Oldest Tickets -->
+  <div class="sec">
+    <div class="sec-title">Top 20 Oldest Open Tickets</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Ticket ID</th><th>Customer</th><th>Segment</th>
+            <th>Agent</th><th>Team</th><th>Age</th><th>Touchpoints</th><th>Priority</th>
+          </tr>
+        </thead>
+        <tbody id="ticket-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// ── Clamp helper ──────────────────────────────────────────────────────────────
+function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+const AGENTS = [
+  { name:'Sophie Martin', team:'Internal CS' },
+  { name:'Lucas Durand',  team:'Internal CS' },
+  { name:'Emma Petit',    team:'Internal CS' },
+  { name:'Léa Simon',     team:'Internal CS' },
+  { name:'Hugo Bernard',  team:'BPO CS' },
+  { name:'Chloé Leroy',   team:'BPO CS' },
+  { name:'Tom Moreau',    team:'BPO CS' },
+  { name:'Paul Laurent',  team:'BPO CS' },
+];
+
+// p=label, opened, closed, so=still open, fcr%, ro=res by open(d), rc=res by close(d),
+// ao=age by open(d), ag=age(d), tp=touchpoints, ht=handling(min), sla%, csat/5,
+// rr=reopen%, er=escalation%, pc=per customer, auto=% automated, tpl=% templatized, reroute=% rerouted
+const DATA = {
+  week: [
+    {p:'W11',opened:142,closed:128,so:45, fcr:72,ro:4.2,rc:3.8,ao:5.1,ag:4.8,tp:2.8,ht:12.4,sla:88,csat:4.1,rr:8, er:6, pc:1.4,auto:12,tpl:28,reroute:12,cr1d:16,cr7d:52},
+    {p:'W12',opened:138,closed:135,so:52, fcr:74,ro:4.0,rc:3.6,ao:4.8,ag:4.5,tp:2.7,ht:11.8,sla:89,csat:4.2,rr:7, er:5, pc:1.5,auto:13,tpl:29,reroute:11,cr1d:17,cr7d:54},
+    {p:'W13',opened:155,closed:140,so:67, fcr:71,ro:4.4,rc:4.0,ao:5.3,ag:5.0,tp:3.0,ht:13.1,sla:86,csat:4.0,rr:9, er:7, pc:1.6,auto:14,tpl:31,reroute:11,cr1d:15,cr7d:50},
+    {p:'W14',opened:148,closed:152,so:63, fcr:76,ro:3.8,rc:3.5,ao:4.6,ag:4.3,tp:2.6,ht:11.2,sla:91,csat:4.3,rr:6, er:5, pc:1.4,auto:15,tpl:32,reroute:10,cr1d:20,cr7d:60},
+    {p:'W15',opened:162,closed:155,so:70, fcr:73,ro:4.1,rc:3.7,ao:5.0,ag:4.7,tp:2.9,ht:12.0,sla:88,csat:4.1,rr:8, er:6, pc:1.5,auto:15,tpl:33,reroute:10,cr1d:18,cr7d:56},
+    {p:'W16',opened:145,closed:148,so:67, fcr:75,ro:3.9,rc:3.6,ao:4.7,ag:4.4,tp:2.7,ht:11.5,sla:90,csat:4.2,rr:7, er:5, pc:1.4,auto:16,tpl:35,reroute:9, cr1d:19,cr7d:58},
+    {p:'W17',opened:170,closed:162,so:75, fcr:70,ro:4.5,rc:4.1,ao:5.5,ag:5.2,tp:3.1,ht:13.8,sla:85,csat:3.9,rr:10,er:8, pc:1.7,auto:17,tpl:36,reroute:9, cr1d:14,cr7d:48},
+    {p:'W18',opened:158,closed:160,so:73, fcr:74,ro:4.0,rc:3.7,ao:4.9,ag:4.6,tp:2.8,ht:12.2,sla:89,csat:4.2,rr:7, er:6, pc:1.5,auto:17,tpl:37,reroute:8, cr1d:18,cr7d:55},
+    {p:'W19',opened:152,closed:156,so:69, fcr:77,ro:3.7,rc:3.4,ao:4.5,ag:4.2,tp:2.5,ht:10.8,sla:92,csat:4.4,rr:6, er:4, pc:1.4,auto:18,tpl:38,reroute:8, cr1d:22,cr7d:63},
+    {p:'W20',opened:165,closed:158,so:76, fcr:72,ro:4.2,rc:3.8,ao:5.1,ag:4.8,tp:2.9,ht:13.0,sla:87,csat:4.0,rr:9, er:7, pc:1.6,auto:19,tpl:39,reroute:8, cr1d:17,cr7d:53},
+    {p:'W21',opened:175,closed:168,so:83, fcr:69,ro:4.6,rc:4.2,ao:5.6,ag:5.3,tp:3.2,ht:14.2,sla:84,csat:3.8,rr:11,er:9, pc:1.8,auto:20,tpl:41,reroute:7, cr1d:13,cr7d:46},
+    {p:'W22',opened:168,closed:172,so:79, fcr:75,ro:4.0,rc:3.6,ao:4.8,ag:4.5,tp:2.8,ht:12.1,sla:90,csat:4.2,rr:7, er:6, pc:1.5,auto:21,tpl:42,reroute:7, cr1d:19,cr7d:57},
+  ],
+  month: [
+    {p:'Apr 24',opened:612, closed:575, so:85, fcr:71,ro:4.3,rc:3.9,ao:5.2,ag:4.9,tp:2.9,ht:12.4,sla:87,csat:4.1,rr:9, er:7, pc:1.5,auto:10,tpl:25,reroute:14,cr1d:15,cr7d:50},
+    {p:'May 24',opened:645, closed:620, so:110,fcr:73,ro:4.1,rc:3.7,ao:5.0,ag:4.7,tp:2.8,ht:12.0,sla:89,csat:4.2,rr:8, er:6, pc:1.4,auto:11,tpl:26,reroute:13,cr1d:16,cr7d:53},
+    {p:'Jun 24',opened:590, closed:605, so:95, fcr:76,ro:3.9,rc:3.5,ao:4.7,ag:4.4,tp:2.6,ht:11.2,sla:91,csat:4.3,rr:7, er:5, pc:1.4,auto:12,tpl:28,reroute:12,cr1d:19,cr7d:59},
+    {p:'Jul 24',opened:520, closed:498, so:117,fcr:70,ro:4.6,rc:4.2,ao:5.6,ag:5.3,tp:3.1,ht:13.5,sla:85,csat:3.9,rr:10,er:8, pc:1.6,auto:13,tpl:29,reroute:12,cr1d:14,cr7d:48},
+    {p:'Aug 24',opened:480, closed:462, so:135,fcr:68,ro:4.8,rc:4.4,ao:5.9,ag:5.6,tp:3.3,ht:14.0,sla:83,csat:3.8,rr:12,er:9, pc:1.7,auto:14,tpl:30,reroute:11,cr1d:12,cr7d:44},
+    {p:'Sep 24',opened:635, closed:618, so:152,fcr:74,ro:4.0,rc:3.6,ao:4.8,ag:4.5,tp:2.7,ht:12.0,sla:90,csat:4.2,rr:8, er:6, pc:1.5,auto:15,tpl:32,reroute:10,cr1d:18,cr7d:56},
+    {p:'Oct 24',opened:672, closed:658, so:166,fcr:72,ro:4.2,rc:3.8,ao:5.1,ag:4.8,tp:2.9,ht:12.4,sla:88,csat:4.1,rr:9, er:7, pc:1.5,auto:16,tpl:34,reroute:10,cr1d:17,cr7d:54},
+    {p:'Nov 24',opened:698, closed:680, so:184,fcr:71,ro:4.3,rc:3.9,ao:5.2,ag:4.9,tp:3.0,ht:13.0,sla:87,csat:4.0,rr:9, er:7, pc:1.6,auto:17,tpl:36,reroute:9, cr1d:16,cr7d:52},
+    {p:'Dec 24',opened:580, closed:570, so:194,fcr:73,ro:4.1,rc:3.7,ao:5.0,ag:4.7,tp:2.8,ht:12.0,sla:89,csat:4.2,rr:8, er:6, pc:1.4,auto:18,tpl:38,reroute:8, cr1d:18,cr7d:57},
+    {p:'Jan 25',opened:625, closed:612, so:207,fcr:74,ro:4.0,rc:3.6,ao:4.8,ag:4.5,tp:2.7,ht:11.5,sla:90,csat:4.3,rr:7, er:5, pc:1.4,auto:19,tpl:39,reroute:8, cr1d:19,cr7d:59},
+    {p:'Feb 25',opened:618, closed:625, so:200,fcr:75,ro:3.9,rc:3.5,ao:4.7,ag:4.4,tp:2.6,ht:11.2,sla:91,csat:4.3,rr:7, er:5, pc:1.4,auto:20,tpl:41,reroute:7, cr1d:20,cr7d:61},
+    {p:'Mar 25',opened:310, closed:318, so:196,fcr:75,ro:4.0,rc:3.6,ao:4.8,ag:4.5,tp:2.8,ht:12.0,sla:90,csat:4.2,rr:7, er:6, pc:1.5,auto:21,tpl:42,reroute:7, cr1d:20,cr7d:60},
+  ],
+  quarter: [
+    {p:'Q1 24',opened:1850,closed:1780,so:220,fcr:70,ro:4.5,rc:4.1,ao:5.5,ag:5.2,tp:3.1,ht:13.5,sla:86,csat:4.0,rr:10,er:8, pc:1.6,auto:10,tpl:25,reroute:15,cr1d:14,cr7d:49},
+    {p:'Q2 24',opened:1920,closed:1855,so:285,fcr:73,ro:4.2,rc:3.8,ao:5.1,ag:4.8,tp:2.9,ht:12.4,sla:88,csat:4.1,rr:8, er:7, pc:1.5,auto:12,tpl:28,reroute:13,cr1d:16,cr7d:53},
+    {p:'Q3 24',opened:1680,closed:1620,so:345,fcr:71,ro:4.4,rc:4.0,ao:5.3,ag:5.0,tp:3.0,ht:13.0,sla:87,csat:4.0,rr:9, er:7, pc:1.6,auto:14,tpl:32,reroute:11,cr1d:15,cr7d:51},
+    {p:'Q4 24',opened:2050,closed:2010,so:385,fcr:72,ro:4.3,rc:3.9,ao:5.2,ag:4.9,tp:2.9,ht:12.6,sla:88,csat:4.1,rr:9, er:7, pc:1.5,auto:16,tpl:36,reroute:9, cr1d:16,cr7d:54},
+    {p:'Q1 25',opened:1980,closed:1960,so:405,fcr:74,ro:4.0,rc:3.6,ao:4.8,ag:4.5,tp:2.7,ht:11.8,sla:90,csat:4.3,rr:7, er:6, pc:1.4,auto:19,tpl:40,reroute:8, cr1d:19,cr7d:59},
+    {p:'Q2 25',opened:310, closed:318, so:397,fcr:75,ro:4.0,rc:3.6,ao:4.8,ag:4.5,tp:2.8,ht:12.0,sla:90,csat:4.2,rr:7, er:6, pc:1.5,auto:21,tpl:42,reroute:7, cr1d:20,cr7d:60},
+  ],
+  year: [
+    {p:'2021',opened:6200, closed:5900, so:580, fcr:68,ro:5.1,rc:4.6,ao:6.2,ag:5.8,tp:3.4,ht:14.5,sla:83,csat:3.8,rr:12,er:10,pc:1.8,auto:5, tpl:15,reroute:20,cr1d:11,cr7d:42},
+    {p:'2022',opened:7100, closed:6850, so:830, fcr:70,ro:4.8,rc:4.3,ao:5.8,ag:5.5,tp:3.2,ht:13.8,sla:85,csat:3.9,rr:11,er:9, pc:1.7,auto:9, tpl:20,reroute:17,cr1d:13,cr7d:47},
+    {p:'2023',opened:7800, closed:7650, so:980, fcr:72,ro:4.4,rc:4.0,ao:5.3,ag:5.0,tp:3.0,ht:13.0,sla:87,csat:4.0,rr:10,er:8, pc:1.6,auto:13,tpl:28,reroute:13,cr1d:16,cr7d:52},
+    {p:'2024',opened:7680, closed:7560, so:1100,fcr:72,ro:4.2,rc:3.8,ao:5.1,ag:4.8,tp:2.9,ht:12.6,sla:88,csat:4.1,rr:9, er:7, pc:1.5,auto:17,tpl:35,reroute:10,cr1d:17,cr7d:55},
+    {p:'2025',opened:2290, closed:2278, so:1112,fcr:75,ro:4.0,rc:3.6,ao:4.8,ag:4.5,tp:2.8,ht:12.0,sla:90,csat:4.2,rr:7, er:6, pc:1.5,auto:21,tpl:42,reroute:7, cr1d:20,cr7d:60},
+  ],
+};
+
+const AGENT_DATA = {
+  week: [
+    {agent:'Sophie Martin',team:'Internal CS',open:22,closed:20},
+    {agent:'Lucas Durand', team:'Internal CS',open:18,closed:22},
+    {agent:'Emma Petit',   team:'Internal CS',open:25,closed:18},
+    {agent:'Léa Simon',    team:'Internal CS',open:20,closed:24},
+    {agent:'Hugo Bernard', team:'BPO CS',     open:28,closed:25},
+    {agent:'Chloé Leroy',  team:'BPO CS',     open:24,closed:22},
+    {agent:'Tom Moreau',   team:'BPO CS',     open:30,closed:19},
+    {agent:'Paul Laurent', team:'BPO CS',     open:21,closed:27},
+  ],
+  month: [
+    {agent:'Sophie Martin',team:'Internal CS',open:88, closed:82 },
+    {agent:'Lucas Durand', team:'Internal CS',open:74, closed:90 },
+    {agent:'Emma Petit',   team:'Internal CS',open:95, closed:72 },
+    {agent:'Léa Simon',    team:'Internal CS',open:82, closed:96 },
+    {agent:'Hugo Bernard', team:'BPO CS',     open:112,closed:102},
+    {agent:'Chloé Leroy',  team:'BPO CS',     open:96, closed:90 },
+    {agent:'Tom Moreau',   team:'BPO CS',     open:118,closed:78 },
+    {agent:'Paul Laurent', team:'BPO CS',     open:86, closed:108},
+  ],
+  quarter: [
+    {agent:'Sophie Martin',team:'Internal CS',open:265,closed:248},
+    {agent:'Lucas Durand', team:'Internal CS',open:222,closed:270},
+    {agent:'Emma Petit',   team:'Internal CS',open:285,closed:216},
+    {agent:'Léa Simon',    team:'Internal CS',open:246,closed:288},
+    {agent:'Hugo Bernard', team:'BPO CS',     open:336,closed:306},
+    {agent:'Chloé Leroy',  team:'BPO CS',     open:288,closed:270},
+    {agent:'Tom Moreau',   team:'BPO CS',     open:354,closed:234},
+    {agent:'Paul Laurent', team:'BPO CS',     open:258,closed:324},
+  ],
+  year: [
+    {agent:'Sophie Martin',team:'Internal CS',open:960, closed:920 },
+    {agent:'Lucas Durand', team:'Internal CS',open:820, closed:980 },
+    {agent:'Emma Petit',   team:'Internal CS',open:1050,closed:800 },
+    {agent:'Léa Simon',    team:'Internal CS',open:900, closed:1040},
+    {agent:'Hugo Bernard', team:'BPO CS',     open:1280,closed:1180},
+    {agent:'Chloé Leroy',  team:'BPO CS',     open:1100,closed:1020},
+    {agent:'Tom Moreau',   team:'BPO CS',     open:1380,closed:900 },
+    {agent:'Paul Laurent', team:'BPO CS',     open:980, closed:1240},
+  ],
+};
+
+const TICKETS = [
+  {id:'TK-0291',cust:'Clinique Pasteur',   seg:'Salaried',agent:'Tom Moreau',   team:'BPO CS',     age:87,tp:8,pri:'High'},
+  {id:'TK-0318',cust:'Cabinet Dr. Lefèvre',seg:'Self-emp',agent:'Emma Petit',   team:'Internal CS',age:74,tp:6,pri:'High'},
+  {id:'TK-0402',cust:'Groupe Santé Est',   seg:'Salaried',agent:'Hugo Bernard', team:'BPO CS',     age:68,tp:9,pri:'High'},
+  {id:'TK-0455',cust:'Dr. Aurélie Roux',   seg:'Self-emp',agent:'Paul Laurent', team:'BPO CS',     age:61,tp:5,pri:'Med'},
+  {id:'TK-0512',cust:'Centre Médical Lyon',seg:'Salaried',agent:'Lucas Durand', team:'Internal CS',age:55,tp:7,pri:'High'},
+  {id:'TK-0567',cust:'Dr. Marc Fontaine',  seg:'Self-emp',agent:'Chloé Leroy',  team:'BPO CS',     age:49,tp:4,pri:'Med'},
+  {id:'TK-0589',cust:'Polyclinique Avenir',seg:'Salaried',agent:'Sophie Martin',team:'Internal CS',age:46,tp:6,pri:'Med'},
+  {id:'TK-0621',cust:'Dr. Julie Morin',    seg:'Self-emp',agent:'Tom Moreau',   team:'BPO CS',     age:42,tp:5,pri:'Med'},
+  {id:'TK-0644',cust:'CHU Bordeaux',       seg:'Salaried',agent:'Léa Simon',    team:'Internal CS',age:40,tp:8,pri:'High'},
+  {id:'TK-0678',cust:'Dr. Pierre Blanc',   seg:'Self-emp',agent:'Hugo Bernard', team:'BPO CS',     age:38,tp:3,pri:'Low'},
+  {id:'TK-0701',cust:'Cabinet Pluridis',   seg:'Salaried',agent:'Emma Petit',   team:'Internal CS',age:36,tp:5,pri:'Med'},
+  {id:'TK-0724',cust:'Dr. Nathalie Vidal', seg:'Self-emp',agent:'Paul Laurent', team:'BPO CS',     age:34,tp:4,pri:'Low'},
+  {id:'TK-0748',cust:'Réseau Santé Ouest', seg:'Salaried',agent:'Sophie Martin',team:'Internal CS',age:32,tp:6,pri:'Med'},
+  {id:'TK-0765',cust:'Dr. Olivier Girard', seg:'Self-emp',agent:'Lucas Durand', team:'Internal CS',age:30,tp:3,pri:'Low'},
+  {id:'TK-0789',cust:'Clinique Saint-Jean',seg:'Salaried',agent:'Chloé Leroy',  team:'BPO CS',     age:29,tp:5,pri:'Med'},
+  {id:'TK-0812',cust:'Dr. Camille Noël',   seg:'Self-emp',agent:'Tom Moreau',   team:'BPO CS',     age:27,tp:4,pri:'Low'},
+  {id:'TK-0835',cust:'Groupe Harmonie',    seg:'Salaried',agent:'Léa Simon',    team:'Internal CS',age:26,tp:5,pri:'Med'},
+  {id:'TK-0858',cust:'Dr. François Dupuis',seg:'Self-emp',agent:'Hugo Bernard', team:'BPO CS',     age:24,tp:3,pri:'Low'},
+  {id:'TK-0882',cust:'Cabinet Santé+',     seg:'Salaried',agent:'Paul Laurent', team:'BPO CS',     age:23,tp:4,pri:'Low'},
+  {id:'TK-0901',cust:'Dr. Isabelle Renard',seg:'Self-emp',agent:'Emma Petit',   team:'Internal CS',age:21,tp:3,pri:'Low'},
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const state = { period:'week', seg:'all', team:'all', agent:'all', country:'all' };
+const CHARTS = {};
+
+// ── Scale & offset tables ─────────────────────────────────────────────────────
+const SEG_S     = { all:1, salaried:0.60, selfemployed:0.40 };
+const TEAM_S    = { all:1, internal:0.48, bpo:0.52 };
+const COUNTRY_S = { all:1, france:0.65, italy:0.20, germany:0.15 };
+
+// Quality offsets per team (applied additively to baseline quality metrics)
+const TEAM_Q = {
+  all:      { fcr:0,  sla:0,  csat:0,    rr:0,  er:0,  tp:0,    ht:0,  reroute:0,  cr1d:0,  cr7d:0  },
+  internal: { fcr:+5, sla:+4, csat:+0.2, rr:-3, er:-2, tp:-0.4, ht:-2, reroute:-3, cr1d:+4, cr7d:+7 },
+  bpo:      { fcr:-5, sla:-4, csat:-0.2, rr:+3, er:+2, tp:+0.4, ht:+2, reroute:+3, cr1d:-4, cr7d:-7 },
+};
+
+// Quality offsets per agent
+const AGENT_Q = {
+  'Sophie Martin': { fcr:+4, sla:+3, csat:+0.2 },
+  'Lucas Durand':  { fcr:+2, sla:+1, csat:+0.1 },
+  'Emma Petit':    { fcr:-3, sla:-2, csat:-0.15 },
+  'Léa Simon':     { fcr:+6, sla:+5, csat:+0.25 },
+  'Hugo Bernard':  { fcr:+1, sla:+2, csat:+0.05 },
+  'Chloé Leroy':   { fcr:-2, sla:-1, csat:-0.1 },
+  'Tom Moreau':    { fcr:-4, sla:-3, csat:-0.2 },
+  'Paul Laurent':  { fcr:+5, sla:+4, csat:+0.2 },
+};
+
+// Quality offsets per country
+const COUNTRY_Q = {
+  all:     { fcr:0,  sla:0,  csat:0,    rr:0,  er:0,  reroute:0,  cr1d:0,  cr7d:0  },
+  france:  { fcr:0,  sla:0,  csat:0,    rr:0,  er:0,  reroute:0,  cr1d:0,  cr7d:0  },
+  italy:   { fcr:-4, sla:-4, csat:-0.2, rr:+3, er:+2, reroute:+3, cr1d:-3, cr7d:-6 },
+  germany: { fcr:+3, sla:+3, csat:+0.15,rr:-2, er:-1, reroute:-2, cr1d:+2, cr7d:+4 },
+};
+
+const PL = { week:'period', month:'period', quarter:'period', year:'period' };
+const PL_CAP = { week:'Period', month:'Period', quarter:'Period', year:'Period' };
+
+function n(v) { return typeof v === 'number' ? v.toLocaleString() : v; }
+function pct(a, b) { return b ? ((a - b) / b * 100).toFixed(1) : null; }
+
+function getFilteredData() {
+  const teamS    = TEAM_S[state.team];
+  const segS     = SEG_S[state.seg];
+  const countryS = COUNTRY_S[state.country];
+  const agentS   = state.agent !== 'all' ? 0.25 : 1;
+  const volScale = countryS * segS * teamS * agentS;
+
+  const sm = state.seg === 'selfemployed' ? 0.82 : state.seg === 'salaried' ? 1.08 : 1;
+
+  const tq  = TEAM_Q[state.team];
+  const cq  = COUNTRY_Q[state.country];
+  const aq  = state.agent !== 'all' ? (AGENT_Q[state.agent] || {}) : {};
+
+  return DATA[state.period].map(d => {
+    const fcr  = clamp(d.fcr  + tq.fcr  + cq.fcr  + (aq.fcr  || 0), 40, 98);
+    const sla  = clamp(d.sla  + tq.sla  + cq.sla  + (aq.sla  || 0), 50, 99);
+    const csat = clamp(d.csat + tq.csat + cq.csat + (aq.csat || 0), 1, 5);
+    const rr   = Math.max(0, d.rr  + tq.rr  + cq.rr);
+    const er   = Math.max(0, d.er  + tq.er  + cq.er);
+    const tp   = Math.max(0.5, d.tp  + tq.tp);
+    const ht   = Math.max(1,   d.ht  + tq.ht);
+    const reroute = Math.max(0, d.reroute + tq.reroute + cq.reroute);
+    const cr1d = clamp(d.cr1d + tq.cr1d + cq.cr1d, 5, 45);
+    const cr7d = clamp(d.cr7d + tq.cr7d + cq.cr7d, 20, 85);
+
+    return {
+      ...d,
+      opened:  Math.round(d.opened  * volScale),
+      closed:  Math.round(d.closed  * volScale),
+      so:      Math.round(d.so      * volScale),
+      pc:      +(d.pc * sm).toFixed(1),
+      fcr, sla, csat, rr, er, tp, ht, reroute, cr1d, cr7d,
+    };
+  });
+}
+
+function getFilteredAgents() {
+  let rows = AGENT_DATA[state.period];
+  if (state.team !== 'all') rows = rows.filter(a => a.team === (state.team === 'internal' ? 'Internal CS' : 'BPO CS'));
+  if (state.agent !== 'all') rows = rows.filter(a => a.agent === state.agent);
+  // Apply volume scaling to agent rows too
+  const teamS    = TEAM_S[state.team];
+  const segS     = SEG_S[state.seg];
+  const countryS = COUNTRY_S[state.country];
+  const agentS   = state.agent !== 'all' ? 0.25 : 1;
+  const volScale = countryS * segS * teamS * agentS;
+  return rows.map(a => ({
+    ...a,
+    open:   Math.round(a.open   * volScale),
+    closed: Math.round(a.closed * volScale),
+  }));
+}
+
+function getFilteredTickets() {
+  let rows = TICKETS;
+  if (state.seg   !== 'all') rows = rows.filter(t => t.seg  === (state.seg  === 'salaried' ? 'Salaried' : 'Self-emp'));
+  if (state.team  !== 'all') rows = rows.filter(t => t.team === (state.team === 'internal'  ? 'Internal CS' : 'BPO CS'));
+  if (state.agent !== 'all') rows = rows.filter(t => t.agent === state.agent);
+  return rows;
+}
+
+function chipHtml(delta, invert, unit) {
+  if (delta === null) return '';
+  const nv = parseFloat(delta);
+  const good = invert ? nv < 0 : nv > 0;
+  const cls  = good ? 'chip-g' : 'chip-r';
+  const arrow = nv > 0 ? '▲' : '▼';
+  return `<span class="chip ${cls}">${arrow} ${Math.abs(nv)}${unit || '%'}</span>`;
+}
+
+// ── Chart.js defaults ─────────────────────────────────────────────────────────
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+Chart.defaults.font.size   = 11;
+Chart.defaults.color       = '#788296';
+Chart.defaults.plugins.legend.labels.boxWidth  = 12;
+Chart.defaults.plugins.legend.labels.padding   = 10;
+Chart.defaults.plugins.tooltip.backgroundColor = '#fff';
+Chart.defaults.plugins.tooltip.titleColor      = '#002850';
+Chart.defaults.plugins.tooltip.bodyColor       = '#1A1E2A';
+Chart.defaults.plugins.tooltip.borderColor     = '#DDE6F0';
+Chart.defaults.plugins.tooltip.borderWidth     = 1;
+Chart.defaults.plugins.tooltip.padding         = 10;
+Chart.defaults.plugins.tooltip.titleFont       = { weight: 'bold', size: 12 };
+
+const GRID = { color: '#EEF3F8' };
+const TICK = { color: '#788296', font: { size: 10 } };
+
+function mk(id, config) {
+  if (CHARTS[id]) CHARTS[id].destroy();
+  CHARTS[id] = new Chart(document.getElementById(id), config);
+}
+
+// ── Topic / Product split constants ───────────────────────────────────────────
+const TOPICS = ['Account & Billing', 'Technical Issue', 'Scheduling', 'Compliance & Reg', 'Other'];
+const TOPIC_OPEN_SPLITS   = [0.30, 0.25, 0.20, 0.15, 0.10];
+const TOPIC_CLOSED_SPLITS = [0.32, 0.24, 0.19, 0.15, 0.10];
+const TOPIC_SO_SPLITS     = [0.28, 0.26, 0.22, 0.14, 0.10];
+
+const PRODUCTS = ['Patient Flow Mgmt', 'C&F', 'Doctolib Assistant', 'Doctolib Connect'];
+const PROD_OPEN_SPLITS   = [0.35, 0.25, 0.22, 0.18];
+const PROD_CLOSED_SPLITS = [0.34, 0.26, 0.22, 0.18];
+const PROD_SO_SPLITS     = [0.38, 0.24, 0.20, 0.18];
+
+// ── Build / update all charts ─────────────────────────────────────────────────
+function renderAll() {
+  const data    = getFilteredData();
+  const agents  = getFilteredAgents();
+  const tickets = getFilteredTickets();
+  const pl      = 'period';
+  const last    = data[data.length - 1];
+  const prev    = data[data.length - 2];
+  const labels  = data.map(d => d.p);
+
+  // ── KPIs ──
+  const plCap = 'Period';
+  document.getElementById('kpi-closed-lbl').textContent  = `Tickets Closed — Last ${plCap}`;
+  document.getElementById('kpi-opened-lbl').textContent  = `Tickets Opened — Last ${plCap}`;
+  document.getElementById('kpi-ratio-lbl').textContent   = `Opened / Closed Ratio — Last ${plCap}`;
+
+  document.getElementById('kpi-open').textContent   = n(last.so);
+  document.getElementById('kpi-closed').textContent = n(last.closed);
+  document.getElementById('kpi-opened').textContent = n(last.opened);
+
+  const ratio = last ? (last.opened / last.closed * 100).toFixed(1) : '—';
+  document.getElementById('kpi-ratio').textContent  = ratio + '%';
+
+  const openDelta   = prev ? pct(last.so, prev.so) : null;
+  const closeDelta  = prev ? pct(last.closed, prev.closed) : null;
+  const openedDelta = prev ? pct(last.opened, prev.opened) : null;
+  const prevRatio   = prev ? (prev.opened / prev.closed * 100).toFixed(1) : null;
+  const ratioDelta  = prevRatio ? (parseFloat(ratio) - parseFloat(prevRatio)).toFixed(1) : null;
+
+  document.getElementById('kpi-open-foot').innerHTML   = chipHtml(openDelta,   true)  + ` vs prev ${pl}`;
+  document.getElementById('kpi-closed-foot').innerHTML = chipHtml(closeDelta,  false) + ` vs prev ${pl}`;
+  document.getElementById('kpi-opened-foot').innerHTML = chipHtml(openedDelta, true)  + ` vs prev ${pl}`;
+  document.getElementById('kpi-ratio-foot').innerHTML  = (ratioDelta !== null ? chipHtml(ratioDelta, true, 'pp') : '') + ` vs prev ${pl}`;
+
+  // Sub-labels
+  document.getElementById('sub-vol').textContent   = `Per ${pl}`;
+  document.getElementById('sub-ag-open').textContent  = `Last ${pl}`;
+  document.getElementById('sub-ag-close').textContent = `Last ${pl}`;
+  document.getElementById('sub-pc').textContent    = `Avg per ${pl}`;
+  document.getElementById('sub-tp').textContent    = `Per ${pl}`;
+  document.getElementById('sub-ht').textContent    = `Per ${pl} (min)`;
+  document.getElementById('sub-sla').textContent   = `Per ${pl}`;
+  document.getElementById('sub-csat').textContent  = `Per ${pl} (out of 5)`;
+  document.getElementById('sub-auto').textContent  = `Per ${pl}`;
+  document.getElementById('sub-tpl').textContent   = `Per ${pl}`;
+  document.getElementById('rank-title').textContent = `All Agents — Tickets Closed Last ${plCap}`;
+
+  // ── Volume: Opened, Closed & Still Open ──
+  mk('ch-vol', {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label:'Opened',     data: data.map(d=>d.opened), backgroundColor:'#00A8E0', borderRadius:3 },
+      { label:'Closed',     data: data.map(d=>d.closed), backgroundColor:'#002850', borderRadius:3 },
+      { label:'Still Open', data: data.map(d=>d.so),     backgroundColor:'#F59E0B', borderRadius:3 },
+    ]},
+    options: { responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{grid:GRID,ticks:TICK} } }
+  });
+
+  // ── Tickets per customer ──
+  mk('ch-pc', {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Tickets / customer', data:data.map(d=>d.pc), backgroundColor:'#00A8E0', borderRadius:3 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:0,max:3,grid:GRID,ticks:TICK} } }
+  });
+
+  // ── Topic: Opened & Closed (grouped horizontal bar) ──
+  const lastOpened = last.opened;
+  const lastClosed = last.closed;
+  const lastSo     = last.so;
+  mk('ch-topic-vol', {
+    type:'bar',
+    data:{
+      labels: TOPICS,
+      datasets:[
+        { label:'Opened', data: TOPIC_OPEN_SPLITS.map(s=>Math.round(lastOpened*s)),   backgroundColor:'#00A8E0', borderRadius:3 },
+        { label:'Closed', data: TOPIC_CLOSED_SPLITS.map(s=>Math.round(lastClosed*s)), backgroundColor:'#002850', borderRadius:3 },
+      ]
+    },
+    options:{ indexAxis:'y', responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{grid:{display:false},ticks:{...TICK,font:{size:9}}} } }
+  });
+
+  // ── Product: Opened & Closed ──
+  mk('ch-prod-vol', {
+    type:'bar',
+    data:{
+      labels: PRODUCTS,
+      datasets:[
+        { label:'Opened', data: PROD_OPEN_SPLITS.map(s=>Math.round(lastOpened*s)),   backgroundColor:'#00A8E0', borderRadius:3 },
+        { label:'Closed', data: PROD_CLOSED_SPLITS.map(s=>Math.round(lastClosed*s)), backgroundColor:'#002850', borderRadius:3 },
+      ]
+    },
+    options:{ indexAxis:'y', responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{grid:{display:false},ticks:{...TICK,font:{size:9}}} } }
+  });
+
+  // ── Touchpoints ──
+  mk('ch-tp', {
+    type:'line',
+    data:{ labels, datasets:[{ label:'Avg touchpoints', data:data.map(d=>d.tp), borderColor:'#00A8E0', backgroundColor:'transparent', tension:.3, pointRadius:3, borderWidth:2 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:1,max:5,grid:GRID,ticks:TICK} } }
+  });
+
+  // ── Handling time ──
+  mk('ch-ht', {
+    type:'line',
+    data:{ labels, datasets:[{ label:'Handling time (min)', data:data.map(d=>d.ht), borderColor:'#F59E0B', backgroundColor:'transparent', tension:.3, pointRadius:3, borderWidth:2 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:8,max:18,grid:GRID,ticks:{...TICK,callback:v=>v+'m'}} } }
+  });
+
+  // ── % Fully Automated ──
+  mk('ch-auto', {
+    type:'line',
+    data:{ labels, datasets:[{ label:'% Automated', data:data.map(d=>d.auto), borderColor:'#7C3AED', backgroundColor:'rgba(124,58,237,.08)', fill:true, tension:.3, pointRadius:3, borderWidth:2 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:0,max:30,grid:GRID,ticks:{...TICK,callback:v=>v+'%'}} } }
+  });
+
+  // ── SLA ──
+  mk('ch-sla', {
+    type:'line',
+    data:{ labels, datasets:[{ label:'SLA compliance %', data:data.map(d=>d.sla), borderColor:'#22C55E', backgroundColor:'rgba(34,197,94,.08)', fill:true, tension:.3, pointRadius:3, borderWidth:2 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:75,max:100,grid:GRID,ticks:{...TICK,callback:v=>v+'%'}} } }
+  });
+
+  // ── CSAT ──
+  mk('ch-csat', {
+    type:'line',
+    data:{ labels, datasets:[{ label:'CSAT /5', data:data.map(d=>d.csat), borderColor:'#EAB308', backgroundColor:'rgba(234,179,8,.08)', fill:true, tension:.3, pointRadius:3, borderWidth:2 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:3,max:5,grid:GRID,ticks:TICK} } }
+  });
+
+  // ── % Templatized ──
+  mk('ch-tpl', {
+    type:'line',
+    data:{ labels, datasets:[{ label:'% Templatized', data:data.map(d=>d.tpl), borderColor:'#0EA5E9', backgroundColor:'rgba(14,165,233,.08)', fill:true, tension:.3, pointRadius:3, borderWidth:2 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:0,max:55,grid:GRID,ticks:{...TICK,callback:v=>v+'%'}} } }
+  });
+
+  // ── 1-Day Close Rate ──
+  mk('ch-cr1d', {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'1-Day Close Rate %', data:data.map(d=>d.cr1d), backgroundColor:'#00A8E0', borderRadius:3 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:0,max:50,grid:GRID,ticks:{...TICK,callback:v=>v+'%'}} } }
+  });
+
+  // ── 1-Week Close Rate ──
+  mk('ch-cr7d', {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'1-Week Close Rate %', data:data.map(d=>d.cr7d), backgroundColor:'#002850', borderRadius:3 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:0,max:90,grid:GRID,ticks:{...TICK,callback:v=>v+'%'}} } }
+  });
+
+  // ── FCR + Resolution Time combined (mixed chart) ──
+  mk('ch-fcr-res', {
+    type:'bar',
+    data:{ labels, datasets:[
+      {
+        type:'bar',
+        label:'Avg Resolution (days)',
+        data: data.map(d=>d.ro),
+        backgroundColor:'#00A8E0',
+        borderRadius:3,
+        yAxisID:'y',
+      },
+      {
+        type:'line',
+        label:'FCR %',
+        data: data.map(d=>d.fcr),
+        borderColor:'#22C55E',
+        backgroundColor:'transparent',
+        tension:.3, pointRadius:3, borderWidth:2,
+        yAxisID:'y1',
+      },
+    ]},
+    options:{
+      responsive:true,
+      scales:{
+        x:  { grid:GRID, ticks:TICK },
+        y:  { position:'left',  min:0, max:7, grid:GRID, ticks:{...TICK,callback:v=>v+'d'}, title:{display:true,text:'Days',color:'#788296',font:{size:10}} },
+        y1: { position:'right', min:40, max:100, grid:{display:false}, ticks:{...TICK,callback:v=>v+'%'}, title:{display:true,text:'FCR %',color:'#788296',font:{size:10}} },
+      }
+    }
+  });
+
+  // ── Resolution time by closing period ──
+  mk('ch-res-close', {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Avg days', data:data.map(d=>d.rc), backgroundColor:'#003764', borderRadius:3 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:0,max:7,grid:GRID,ticks:{...TICK,callback:v=>v+'d'}} } }
+  });
+
+  // ── Ticket age by opening period (bar) ──
+  mk('ch-age-open', {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Avg age (days)', data:data.map(d=>d.ao), backgroundColor:'#00A8E0', borderRadius:3 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:0,max:9,grid:GRID,ticks:{...TICK,callback:v=>v+'d'}} } }
+  });
+
+  // ── Ticket age by period (bar) ──
+  mk('ch-age', {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Avg age (days)', data:data.map(d=>d.ag), backgroundColor:'#7C3AED', borderRadius:3 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:0,max:9,grid:GRID,ticks:{...TICK,callback:v=>v+'d'}} } }
+  });
+
+  // ── Agents open (horizontal bar) ──
+  const sortedOpen = [...agents].sort((a,b)=>b.open-a.open);
+  mk('ch-ag-open', {
+    type:'bar',
+    data:{
+      labels: sortedOpen.map(a=>a.agent),
+      datasets:[{ label:'Open tickets', data:sortedOpen.map(a=>a.open),
+        backgroundColor: '#00A8E0',
+        borderRadius:3 }]
+    },
+    options:{ indexAxis:'y', responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{grid:{display:false},ticks:TICK} } }
+  });
+
+  // ── Agents closed (horizontal bar) ──
+  const sortedClose = [...agents].sort((a,b)=>b.closed-a.closed);
+  mk('ch-ag-close', {
+    type:'bar',
+    data:{
+      labels: sortedClose.map(a=>a.agent),
+      datasets:[{ label:'Closed tickets', data:sortedClose.map(a=>a.closed),
+        backgroundColor: '#00A8E0',
+        borderRadius:3 }]
+    },
+    options:{ indexAxis:'y', responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{grid:{display:false},ticks:TICK} } }
+  });
+
+  // ── Agent distribution ──
+  const allClosed = AGENT_DATA[state.period].map(a=>a.closed);
+  const minC = Math.min(...allClosed), maxC = Math.max(...allClosed);
+  const bsz  = Math.max(Math.ceil((maxC-minC)/5), 1);
+  const bkts = Array.from({length:5}, (_,i) => {
+    const lo=minC+i*bsz, hi=lo+bsz;
+    return { range:`${lo}–${hi}`, count: allClosed.filter(v=>v>=lo&&v<(i===4?hi+1:hi)).length };
+  });
+  mk('ch-dist', {
+    type:'bar',
+    data:{ labels:bkts.map(b=>b.range), datasets:[{ label:'Agents', data:bkts.map(b=>b.count), backgroundColor:'#00A8E0', borderRadius:3 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{grid:GRID,ticks:{...TICK,stepSize:1}} } }
+  });
+
+  // ── Reopen rate ──
+  mk('ch-rr', {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Reopen rate %', data:data.map(d=>d.rr), backgroundColor:'rgba(239,68,68,.75)', borderRadius:3 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:0,max:20,grid:GRID,ticks:{...TICK,callback:v=>v+'%'}} } }
+  });
+
+  // ── Escalation rate ──
+  mk('ch-er', {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Escalation rate %', data:data.map(d=>d.er), backgroundColor:'rgba(245,158,11,.8)', borderRadius:3 }]},
+    options:{ responsive:true, scales:{ x:{grid:GRID,ticks:TICK}, y:{min:0,max:15,grid:GRID,ticks:{...TICK,callback:v=>v+'%'}} } }
+  });
+
+  // ── Re-routing rate ──
+  mk('ch-reroute', {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Re-routing rate %', data:data.map(d=>d.reroute), backgroundColor:'rgba(124,58,237,.75)', borderRadius:3 }]},
+    options:{
+      responsive:true,
+      scales:{ x:{grid:GRID,ticks:TICK}, y:{min:0,max:25,grid:GRID,ticks:{...TICK,callback:v=>v+'%'}} },
+      plugins:{
+        annotation:{ annotations:{ line1:{ type:'line', yMin:8, yMax:8, borderColor:'#EF4444', borderDash:[4,4], label:{content:'Target <8%',enabled:true,position:'end',font:{size:9},color:'#EF4444'} } } }
+      }
+    }
+  });
+
+  // ── Rankings ──
+  const top = sortedClose[0];
+  const bot = sortedClose[sortedClose.length-1];
+  if (top) {
+    document.getElementById('top-name').textContent = top.agent;
+    document.getElementById('top-team').textContent = top.team;
+    document.getElementById('top-n').textContent    = n(top.closed);
+  }
+  if (bot) {
+    document.getElementById('bot-name').textContent = bot.agent;
+    document.getElementById('bot-team').textContent = bot.team;
+    document.getElementById('bot-n').textContent    = n(bot.closed);
+  }
+
+  mk('ch-rank', {
+    type:'bar',
+    data:{
+      labels: sortedClose.map(a=>a.agent),
+      datasets:[{ label:'Tickets closed', data:sortedClose.map(a=>a.closed),
+        backgroundColor: '#00A8E0',
+        borderRadius:3 }]
+    },
+    options:{ indexAxis:'y', responsive:true, plugins:{legend:{display:false}},
+      scales:{ x:{grid:GRID,ticks:TICK}, y:{grid:{display:false},ticks:TICK} } }
+  });
+
+  // ── Table ──
+  const tbody = document.getElementById('ticket-tbody');
+  const rows  = tickets.slice(0, 20);
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty">No tickets match the current filters.</div></td></tr>';
+  } else {
+    tbody.innerHTML = rows.map((t, i) => {
+      const ageCl = t.age > 60 ? 'color:#EF4444;font-weight:700' : t.age > 30 ? 'color:#F59E0B;font-weight:700' : 'color:#788296;font-weight:600';
+      const priCl = t.pri==='High'?'b-h':t.pri==='Med'?'b-m':'b-l';
+      return `<tr>
+        <td style="color:#788296;font-weight:700">${i+1}</td>
+        <td style="font-family:monospace;font-weight:700;color:#002850">${t.id}</td>
+        <td>${t.cust}</td>
+        <td><span class="b ${t.seg==='Salaried'?'b-sal':'b-se'}">${t.seg}</span></td>
+        <td>${t.agent}</td>
+        <td><span class="b ${t.team==='Internal CS'?'b-int':'b-bpo'}">${t.team}</span></td>
+        <td style="${ageCl}">${t.age}d</td>
+        <td style="font-weight:600;text-align:center">${t.tp}</td>
+        <td><span class="b ${priCl}">${t.pri}</span></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+// ── Agent dropdown ────────────────────────────────────────────────────────────
+function refreshAgentDropdown() {
+  const sel = document.getElementById('f-agent');
+  const cur = state.agent;
+  const visible = state.team === 'all'
+    ? AGENTS
+    : AGENTS.filter(a => a.team === (state.team === 'internal' ? 'Internal CS' : 'BPO CS'));
+  sel.innerHTML = '<option value="all">All agents</option>' +
+    visible.map(a => `<option value="${a.name}" ${a.name===cur?'selected':''}>${a.name}</option>`).join('');
+  if (!visible.find(a => a.name === cur)) state.agent = 'all';
+}
+
+// ── Event listeners ───────────────────────────────────────────────────────────
+document.getElementById('period-btns').addEventListener('click', e => {
+  if (!e.target.dataset.p) return;
+  state.period = e.target.dataset.p;
+  document.querySelectorAll('#period-btns button').forEach(b => b.classList.toggle('on', b.dataset.p === state.period));
+  renderAll();
+});
+
+document.getElementById('f-seg').addEventListener('change', e => {
+  state.seg = e.target.value;
+  renderAll();
+});
+
+document.getElementById('f-team').addEventListener('change', e => {
+  state.team = e.target.value;
+  state.agent = 'all';
+  refreshAgentDropdown();
+  renderAll();
+});
+
+document.getElementById('f-agent').addEventListener('change', e => {
+  state.agent = e.target.value;
+  renderAll();
+});
+
+document.getElementById('f-country').addEventListener('change', e => {
+  state.country = e.target.value;
+  renderAll();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+refreshAgentDropdown();
+renderAll();
+</script>
+</body>
+</html>
